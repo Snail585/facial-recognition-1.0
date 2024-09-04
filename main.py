@@ -1,10 +1,13 @@
 import pandas as pd
+from pathlib import Path
 from deepface import DeepFace
 import cv2
 import pygame
+import pygame.camera
 import sys
 
 pygame.init() # Initialize Pygame
+pygame.camera.init()
 #window sizing and caption
 window_size = (1000, 600)
 screen = pygame.display.set_mode(window_size)
@@ -19,11 +22,11 @@ def angerInfo():
     angerScreen = pygame.display.set_mode(1000,600)
     pygame.display.set_caption("All About Anger")
     titleA_surface = title.render("Let's Learn More About Anger!", False, (100, 182, 172))
-
+cam_port = 0
+cam = cv2.VideoCapture(cam_port)
 def pic():
-    cam_port = 0
-    cam = cv2.VideoCapture(cam_port)
     result, image = cam.read()
+    results_surface = None
     if result:
         cv2.imshow("photo", image)  # shows results
         cv2.imwrite("photo.png", image)  # saves img
@@ -39,15 +42,15 @@ def pic():
         high = round(high, 1)
         resu = ("We are " + str(high) + "% sure that you are feeling " +objs[0]["dominant_emotion"] + "!")
         results_surface = font.render(resu, False, (0,0,0))
-        screen.blit(results_surface, (0, 150))
         print(objs[0]["emotion"].values())
         print(objs[0]["emotion"])
         cv2.waitKey(0)
     else:
         print("No image detected")
+    return results_surface
 #cam preview setup
-# previewCam = pygame.camera.Camera("/dev/video0", (200,200))
-# previewCam.start()
+previewCam = pygame.camera.Camera(0, (375,400),) #0 used to be cam
+previewCam.start()
 
 #words setup
 welcome_surface = title.render('Welcome to Treasure Hunt!', False, (100, 182, 172))
@@ -97,7 +100,8 @@ neutral_surface = pygame.Surface((75, 75))
 neutral_text = emotifont.render(":|", True, (32,32,32))
 neutral_centering = neutral_text.get_rect(center=(neutral_surface.get_width() / 2,neutral_surface.get_height() / 2))
 neutral_rect = pygame.Rect(762.5, 500, 75, 75) # first two moves sensing button and last two is how big
-
+taken = False
+results_surface = None
 while True:
     screen.fill((255,255,255)) #fills screen with rgb colour
     for event in pygame.event.get(): #Get events from the event queue
@@ -107,10 +111,13 @@ while True:
         #take picture button
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if button_rect.collidepoint(event.pos):
-                pic()
+                taken = True
+                results_surface = pic()
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if anger_rect.collidepoint(event.pos):
                 angerInfo()
+    if taken:
+        screen.blit(results_surface, (562.5, 300))
     # button colours
     if button_rect.collidepoint(pygame.mouse.get_pos()):
         pygame.draw.rect(button_surface, (231, 189, 255), (1, 1, 148, 48)) #hover
@@ -188,12 +195,8 @@ while True:
     neutral_surface.blit(neutral_text, neutral_centering)
     screen.blit(neutral_surface, (neutral_rect.x, neutral_rect.y))
     # camera preview
-    # image = previewCam.get_image()
-    # screen.blit(image, (0, 0))
-
-
-
+    image = previewCam.get_image()
+    screen.blit(image, (230, 100))
     pygame.display.update()# Update the game state
-
 #ending the program
 cv2.destroyAllWindows()
